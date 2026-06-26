@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>入职资料收集工具</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body data-page="collect">
+  <div id="app" v-cloak>
+    <main v-if="!guideAccepted" class="guide-page">
+      <section class="guide-card">
+        <span class="guide-safety"><i>✓</i> 数据仅本地处理，绝不上传云端</span>
+        <h1>{{ config.form.title || '入职资料自助收集' }}</h1>
+        <p class="guide-lead">{{ config.form.subtitle || '请按照下方流程准备并填写，预计耗时 5-10 分钟。' }}</p>
+        <div class="guide-flow">
+          <span><i>1</i><b>准备材料</b></span>
+          <span><i>2</i><b>填写信息</b></span>
+          <span><i>3</i><b>加密打包</b></span>
+          <span><i>4</i><b>手动发送</b></span>
+        </div>
+
+        <el-button type="primary" size="large" class="guide-confirm" @click="startCollection">立即开始填写</el-button>
+      </section>
+    </main>
+
+    <el-container v-else class="app-shell wizard-shell">
+      <el-main class="wizard-main">
+        <section class="wizard-progress" aria-label="填写进度">
+          <el-steps :active="currentStep" finish-status="success" align-center>
+            <el-step title="准备资料" description="准备所需文件"></el-step>
+            <el-step title="填写资料" description="填写信息并上传"></el-step>
+            <el-step title="加密核查" description="加密打包并核查"></el-step>
+            <el-step title="邮件发送" description="按指引发送给 HR"></el-step>
+          </el-steps>
+        </section>
+
+        <section class="wizard-card">
+          <template v-if="currentStep === 0">
+            <div class="wizard-title prepare-titlebar">
+              <span>请查看每项资料的要求和示例，准备好后进入下一步填写与上传。</span>
+              <span class="title-hint">点击图片查看完整示例</span>
+            </div>
+            <div class="prepare-carousel">
+              <el-carousel height="540px" arrow="always" indicator-position="outside" :autoplay="false">
+                <el-carousel-item v-for="(item, index) in sortedAttachments" :key="item.id">
+                  <article class="prepare-slide">
+                    <div class="prepare-preview" @click="openExample(item)">
+                      <img v-if="item.exampleImageUrl" :src="resolveExampleImageUrl(item)" :alt="item.name + '示例'" />
+                      <div v-else class="prepare-placeholder">
+                        <span>{{ item.code.replace('附件', '') }}</span>
+                        <b>暂无示例图</b>
+                        <small>请按右侧要求准备资料</small>
+                      </div>
+                      <div class="prepare-overlay">
+                        <div class="prepare-overlay-main">
+                          <div class="prepare-title">
+                            <h3>{{ item.name }}</h3>
+                            <el-tag v-if="item.required" size="small" type="danger" effect="plain">必填</el-tag>
+                            <el-tag v-else size="small" type="info" effect="plain">选填</el-tag>
+                            <span class="prepare-count">{{ index + 1 }} / {{ sortedAttachments.length }}</span>
+                          </div>
+                          <p class="prepare-desc-text" v-if="item.description" v-html="formatDescription(item.description)"></p>
+                          <p class="prepare-desc-text" v-else>请按 HR 要求准备该项资料，确保文件清晰、完整。</p>
+                          </div>
+                          <div class="prepare-overlay-side">
+                            <div class="prepare-actions">
+                            <a v-if="item.templateUrl" class="template-link" :href="resolveTemplateUrl(item)" download @click.stop>下载模板</a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                </el-carousel-item>
+              </el-carousel>
+            </div>
+          </template>
+
+          <template v-else-if="currentStep === 1">
+            <div class="fill-panel">
+              <div class="fill-panel-head">
+                <span>已完成 <b>{{ completionStats.completed }} / {{ completionStats.total }}</b> 项必填内容</span>
+                <span>已上传 {{ completionStats.uploaded }} / {{ sortedAttachments.length }} 项</span>
+              </div>
+              <el-form :model="formData" label-position="top" class="basic-form">
+                <el-row :gutter="16">
+                  <el-col v-for="field in config.baseFields" :key="field.key" :xs="24" :sm="12">
+                    <el-form-item :label="field.label" :required="field.required">
+                      <el-input v-if="field.type === 'text' || field.type === 'phone' || field.type === 'email'" v-model="formData[field.key]" :placeholder="field.placeholder || '请输入' + field.label" clearable></el-input>
+                      <el-date-picker v-else-if="field.type === 'date'" v-model="formData[field.key]" type="date" value-format="YYYY-MM-DD" :placeholder="field.placeholder || '请选择' + field.label" class="full-width"></el-date-picker>
+                      <el-input v-else v-model="formData[field.key]" :placeholder="field.placeholder || '请输入' + field.label" clearable></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-form>
+
+              <div class="attachment-list attachment-task-list">
+                <article v-for="item in sortedAttachments" :key="item.id" class="attachment-task" :class="{ 'is-done': (uploadFiles[item.id] || []).length > 0 }">
+                  <div class="attachment-task-main">
+                    <span class="attachment-number">{{ item.code.replace('附件', '') }}</span>
+                    <div class="attachment-copy">
+                      <div class="attachment-title">
+                        <span>{{ item.name }}</span>
+                        <el-tag v-if="item.required" size="small" type="danger" effect="plain">必填</el-tag>
+                        <el-tag v-else size="small" type="info" effect="plain">选填</el-tag>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="attachment-task-side">
+                    <span class="attachment-status" :class="{ 'is-done': (uploadFiles[item.id] || []).length > 0 }">
+                      {{ (uploadFiles[item.id] || []).length > 0 ? '已上传 ' + (uploadFiles[item.id] || []).length + ' 个' : '待上传' }}
+                    </span>
+                    <div class="attachment-actions">
+                      <el-upload class="compact-upload" multiple :auto-upload="false" :accept="buildAccept(item)" :limit="getMaxFiles(item)" :file-list="uploadFiles[item.id] || []" :on-change="(file, fileList) => handleAttachmentChange(item, file, fileList)" :on-remove="(file, fileList) => handleAttachmentRemove(item, file, fileList)" :on-exceed="() => handleExceed(item)">
+                        <el-button size="small" type="primary">上传</el-button>
+                      </el-upload>
+                    </div>
+                  </div>
+                  <div v-if="(uploadFiles[item.id] || []).length > 0" class="uploaded-preview">
+                    <span v-for="(file, fileIndex) in uploadFiles[item.id]" :key="file.uid || file.name" class="file-chip">
+                      <button type="button" class="file-name" @click="previewUploaded(item, fileIndex)" :title="'预览 ' + file.name">{{ file.name }}</button>
+                      <button type="button" class="file-preview" @click="previewUploaded(item, fileIndex)">预览</button>
+                      <button type="button" class="file-remove" @click="removeUploadedFile(item, fileIndex)" :title="'删除 ' + file.name">删除</button>
+                    </span>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </template>
+
+          <template v-else-if="currentStep === 2">
+            <div class="secure-panel">
+              <div class="secure-body">
+                <div class="password-box">
+                  <label>ZIP 解压密码</label>
+                  <el-input v-model="zipPassword" type="password" show-password :placeholder="config.form.zipPasswordHint || '请输入 ZIP 解压密码'" class="package-password"></el-input>
+                  <el-button v-if="!generatedZipBlob" type="primary" :loading="generating" @click="generateZip">生成并下载资料包</el-button>
+                  <div v-else class="package-ready"><b>{{ generatedZipName }}</b><el-button type="primary" @click="downloadGeneratedZip">重新下载</el-button></div>
+                </div>
+                <div class="secure-tips">
+                  <span><b>1</b> 输入密码</span>
+                  <span><b>2</b> 生成并下载</span>
+                  <span><b>3</b> 打开 ZIP 核查</span>
+                </div>
+              </div>
+              <div class="check-panel">
+                <div class="check-head"><div><b>资料包文件情况</b><span>{{ generatedZipBlob ? '共 ' + archiveFileList.length + ' 个文件（含基础信息）' : '生成后将在这里显示资料包内的文件清单' }}</span></div></div>
+                <ul v-if="generatedZipBlob" class="archive-list"><li v-for="file in archiveFileList" :key="file"><span>✓</span>{{ file }}</li></ul>
+                <div v-else class="archive-empty">暂无内容，请先生成资料包。</div>
+              </div>
+            </div>
+          </template>
+
+          <template v-else>
+            <div class="mail-panel">
+              <div class="mail-warning">请将 {{ generatedZipName || '加密资料包' }} 按照下面的内容要求将邮件发送给 HR；解压密码请通过微信单独提供。</div>
+              <div class="mail-info">
+                <div><span>收件邮箱</span><b>{{ config.email.to || '请联系 HR 获取收件邮箱' }}</b></div>
+                <div><span>抄送人</span><b>{{ config.email.cc || '无' }}</b></div>
+                <div><span>邮件标题</span><b>{{ generatedEmailSubject }}</b></div>
+                <div><span>资料附件</span><b>{{ generatedZipName || '请先生成资料包' }}</b></div>
+              </div>
+              <el-input class="mail-body-preview" :model-value="generatedEmailBody" type="textarea" :rows="8" readonly></el-input>
+              <div class="copy-actions"><el-button @click="copyText(config.email.to || '')">复制收件邮箱</el-button><el-button @click="copyText(config.email.cc || '')">复制抄送人</el-button><el-button @click="copyText(generatedEmailSubject)">复制邮件标题</el-button><el-button @click="copyText(generatedEmailBody)">复制邮件正文</el-button></div>
+            </div>
+          </template>
+
+          <footer class="wizard-actions">
+            <el-button v-if="currentStep > 0" @click="goPrevious">上一步</el-button>
+            <el-button v-if="currentStep < 3" type="primary" @click="goNext">下一步</el-button>
+            <el-button v-else type="primary" @click="finishCollection">我已完成发送</el-button>
+          </footer>
+        </section>
+      </el-main>
+    </el-container>
+
+    <el-dialog v-model="exampleDialogVisible" :title="currentExampleTitle || '查看示例'" width="760px" align-center class="example-dialog"><div class="example-preview-wrap"><img v-if="currentExampleImageUrl" class="example-preview-image" :src="currentExampleImageUrl" alt="资料示例图" /><div v-else class="example-empty"><el-empty description="暂未配置示例图片"></el-empty><p v-if="currentExampleDescription">请按以下要求准备：{{ currentExampleDescription }}</p></div></div><template #footer><el-button @click="exampleDialogVisible = false">关闭</el-button></template></el-dialog>
+
+    <el-dialog v-model="resultDialogVisible" width="520px" align-center class="finish-dialog" :show-close="false"><div class="finish-content"><div class="finish-icon">✓</div><h2>资料准备完成</h2><p>感谢您的配合。请确认邮件已成功发送给 HR，后续请留意入职通知。</p><el-button type="primary" @click="resultDialogVisible = false">完成</el-button></div></el-dialog>
+  </div>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://unpkg.com/element-plus/dist/index.full.min.js"></script>
+  <script src="https://unpkg.com/@zip.js/zip.js/dist/zip.min.js"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

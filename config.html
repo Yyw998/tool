@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>配置管理 - 入职资料收集工具</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body data-page="config">
+  <div id="app" v-cloak>
+    <el-container class="app-shell">
+      <el-main class="app-main app-main-wide">
+        <section class="page-card config-workspace">
+          <div class="section-title config-hero">
+            <div>
+              <h2>配置管理</h2>
+              <p>配置完成后，请点击“导出发布配置”按钮，再在托管平台中替换站点根目录的 config.json，候选人无需清理缓存刷新页面即可立即生效。</p>
+            </div>
+            <el-space wrap class="config-actions">
+              <el-button @click="exportConfig" type="primary">导出发布配置</el-button>
+              <el-button @click="resetConfig" type="danger" plain>恢复默认</el-button>
+            </el-space>
+          </div>
+
+          <input ref="configFileInput" class="hidden-input" type="file" accept="application/json,.json" @change="importConfig" />
+
+          <el-tabs v-model="configTab" class="config-tabs">
+            <el-tab-pane label="网站配置" name="base">
+              <el-form label-position="top" class="config-form">
+                <el-row :gutter="16">
+                  <el-col :xs="24" :sm="12">
+                    <el-form-item label="表单标题">
+                      <el-input v-model="config.form.title"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :xs="24" :sm="12">
+                    <el-form-item label="表单副标题">
+                      <el-input v-model="config.form.subtitle"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-form>
+            </el-tab-pane>
+
+            <el-tab-pane label="表单项配置" name="items">
+              <div class="config-subsection">
+                <div class="config-subsection-title">
+                  <h3>基础信息项</h3>
+                </div>
+                <el-table :data="config.baseFields" border class="config-table">
+                  <el-table-column label="字段名称" min-width="140">
+                    <template #default="scope">
+                      <el-input v-model="scope.row.label" @change="scope.row.key = scope.row.key || scope.row.label"></el-input>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="必填" width="90" align="center">
+                    <template #default="scope"><el-switch v-model="scope.row.required"></el-switch></template>
+                  </el-table-column>
+                  <el-table-column label="占位提示" min-width="180">
+                    <template #default="scope"><el-input v-model="scope.row.placeholder"></el-input></template>
+                  </el-table-column>
+                  <el-table-column label="排序" width="130">
+                    <template #default="scope">
+                      <el-input-number v-model="scope.row.sort" :min="1" controls-position="right" class="field-sort-number"></el-input-number>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="100" fixed="right">
+                    <template #default="scope"><el-button type="danger" link @click="removeBaseField(scope.$index)">删除</el-button></template>
+                  </el-table-column>
+                </el-table>
+                <div class="mobile-base-field-list">
+                  <article v-for="(field, index) in config.baseFields" :key="field.key || index" class="mobile-base-field-card">
+                    <header>
+                      <span>字段 {{ index + 1 }}</span>
+                      <el-button type="danger" link @click="removeBaseField(index)">删除</el-button>
+                    </header>
+                    <div class="mobile-base-field-body">
+                      <el-form-item label="字段名称">
+                        <el-input v-model="field.label" @change="field.key = field.key || field.label"></el-input>
+                      </el-form-item>
+                      <el-form-item label="占位提示">
+                        <el-input v-model="field.placeholder"></el-input>
+                      </el-form-item>
+                      <div class="mobile-base-field-row">
+                        <span>是否必填</span>
+                        <el-switch v-model="field.required"></el-switch>
+                      </div>
+                      <el-form-item label="显示顺序">
+                        <el-input-number v-model="field.sort" :min="1" class="full-width"></el-input-number>
+                      </el-form-item>
+                    </div>
+                  </article>
+                </div>
+                <div class="config-add-bottom is-compact">
+                  <el-button type="primary" @click="addBaseField">新增字段</el-button>
+                </div>
+              </div>
+
+              <div class="config-subsection">
+                <div class="config-subsection-title">
+                  <h3>资料上传项</h3>
+                </div>
+                <div class="config-attachment-list">
+                  <article v-for="(item, index) in config.attachments" :key="item.id" class="config-attachment-card">
+                    <header>
+                      <div>
+                        <span class="attachment-index">资料项 {{ index + 1 }}</span>
+                        <b>{{ item.name || '未命名资料项' }}</b>
+                      </div>
+                      <el-button type="danger" link @click="removeAttachmentItem(index)">删除</el-button>
+                    </header>
+                    <div class="config-attachment-body flat-attachment-form">
+                      <div class="config-field-cell">
+                        <el-form-item label="资料项名称"><el-input v-model="item.name" placeholder="请输入资料项名称"></el-input></el-form-item>
+                      </div>
+                      <div class="config-field-cell">
+                        <el-form-item label="显示顺序"><el-input-number v-model="item.sort" :min="1" class="full-width"></el-input-number></el-form-item>
+                      </div>
+                      <div class="config-field-cell switch-cell">
+                        <span class="switch-label">是否必填</span><el-switch v-model="item.required"></el-switch>
+                      </div>
+                      <div class="config-field-cell">
+                        <el-form-item label="允许上传类型">
+                          <el-select v-model="item.allowedFormatGroups" multiple class="full-width" placeholder="请选择允许上传的文件类型" @change="syncAttachmentFormatGroups(item)">
+                            <el-option v-for="option in uploadFormatOptions" :key="option.value" :label="option.label" :value="option.value"></el-option>
+                          </el-select>
+                        </el-form-item>
+                      </div>
+                      <div class="config-field-cell">
+                        <el-form-item label="最多上传文件数"><el-input-number v-model="item.maxFiles" :min="1" :max="50" class="full-width"></el-input-number></el-form-item>
+                      </div>
+                      <div class="config-field-cell">
+                        <el-form-item label="单文件大小 MB"><el-input-number v-model="item.maxSizeMB" :min="1" :max="200" class="full-width"></el-input-number></el-form-item>
+                      </div>
+                      <div class="config-field-cell">
+                        <el-form-item label="模板文件名称"><el-input v-model="item.templateUrl" placeholder="xxx.docx"></el-input></el-form-item>
+                      </div>
+                      <div class="config-field-cell">
+                        <el-form-item label="示例图片名称"><el-input v-model="item.exampleImageUrl" placeholder="xxx.png"><template #append><el-button @click="openExample(item)">预览</el-button></template></el-input></el-form-item>
+                      </div>
+                      <div class="config-field-cell is-full">
+                        <el-form-item label="资料项说明"><el-input v-model="item.description" type="textarea" :rows="2" placeholder="告诉候选人需要提交什么、如何拍摄或填写"></el-input></el-form-item>
+                      </div>
+                      <div class="config-field-cell is-full">
+                        <el-form-item label="资料项命名规则"><el-input v-model="item.fileNameTemplate" type="textarea" :rows="2" placeholder="{姓名}_{手机号}_{附件编号}_{资料名称}_{序号}.{扩展名}"></el-input></el-form-item>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+                <div class="config-add-bottom">
+                  <el-button type="primary" @click="addAttachmentItem">新增附件项</el-button>
+                </div>
+              </div>
+            </el-tab-pane>
+
+            <el-tab-pane label="打包核查配置" name="package">
+              <el-form label-position="top" class="config-form">
+                <el-row :gutter="16">
+                  <el-col :xs="24">
+                    <el-form-item label="ZIP 文件名规则">
+                      <el-input v-model="config.naming.zipNameTemplate"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-form-item label="ZIP 密码提示">
+                  <el-input v-model="config.form.zipPasswordHint"></el-input>
+                </el-form-item>
+              </el-form>
+            </el-tab-pane>
+
+            <el-tab-pane label="邮件配置" name="email">
+              <el-form label-position="top" class="config-form">
+                <el-row :gutter="16">
+                  <el-col :xs="24" :sm="12">
+                    <el-form-item label="收件邮箱">
+                      <el-input v-model="config.email.to" placeholder="hr@example.com"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :xs="24" :sm="12">
+                    <el-form-item label="抄送邮箱">
+                      <el-input v-model="config.email.cc" placeholder="可选，多个邮箱用英文逗号分隔"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-form-item label="邮件标题模板">
+                  <el-input v-model="config.email.subjectTemplate"></el-input>
+                </el-form-item>
+                <el-form-item label="邮件正文模板">
+                  <el-input v-model="config.email.bodyTemplate" type="textarea" :rows="8"></el-input>
+                </el-form-item>
+                <el-alert type="info" :closable="false" show-icon>
+                  可用变量：{姓名}、{手机号}、{日期}、{时间}、{表单标题}、{压缩包名称}、{附件编号}、{资料名称}、{序号}、{扩展名}
+                </el-alert>
+              </el-form>
+            </el-tab-pane>
+          </el-tabs>
+        </section>
+      </el-main>
+    </el-container>
+
+    <el-dialog v-model="exampleDialogVisible" :title="currentExampleTitle || '查看示例'" width="760px" class="example-dialog">
+      <div class="example-preview-wrap">
+        <img v-if="currentExampleImageUrl" class="example-preview-image" :src="currentExampleImageUrl" alt="资料示例图" />
+        <el-empty v-else description="未配置示例图片"></el-empty>
+      </div>
+      <template #footer>
+        <el-button @click="exampleDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://unpkg.com/element-plus/dist/index.full.min.js"></script>
+  <script src="https://unpkg.com/@zip.js/zip.js/dist/zip.min.js"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
