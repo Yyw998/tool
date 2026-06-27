@@ -15,16 +15,13 @@
           <div class="section-title config-hero">
             <div>
               <h2>配置管理</h2>
-              <p>配置完成后，请点击“导出发布配置”按钮，再在托管平台中替换站点根目录的 config.json，候选人无需清理缓存刷新页面即可立即生效。</p>
+              <p>配置完成后，请点击“导出发布配置”按钮，再在托管平台中替换站点的 js/config.js，候选人无需清理缓存刷新页面即可立即生效。</p>
             </div>
             <el-space wrap class="config-actions">
               <el-button @click="exportConfig" type="primary">导出发布配置</el-button>
               <el-button @click="resetConfig" type="danger" plain>恢复默认</el-button>
             </el-space>
           </div>
-
-          <input ref="configFileInput" class="hidden-input" type="file" accept="application/json,.json" @change="importConfig" />
-
           <el-tabs v-model="configTab" class="config-tabs">
             <el-tab-pane label="网站配置" name="base">
               <el-form label-position="top" class="config-form">
@@ -65,7 +62,7 @@
                       <el-input-number v-model="scope.row.sort" :min="1" controls-position="right" class="field-sort-number"></el-input-number>
                     </template>
                   </el-table-column>
-                  <el-table-column label="操作" width="100" fixed="right">
+                  <el-table-column label="操作" width="100" align="center" header-align="center">
                     <template #default="scope"><el-button type="danger" link @click="removeBaseField(scope.$index)">删除</el-button></template>
                   </el-table-column>
                 </el-table>
@@ -102,15 +99,23 @@
                   <h3>资料上传项</h3>
                 </div>
                 <div class="config-attachment-list">
-                  <article v-for="(item, index) in config.attachments" :key="item.id" class="config-attachment-card">
+                  <article v-for="(item, index) in config.attachments" :key="item.id" class="config-attachment-card" :class="{ 'is-collapsed': isAttachmentCollapsed(item) }">
                     <header>
                       <div>
                         <span class="attachment-index">资料项 {{ index + 1 }}</span>
                         <b>{{ item.name || '未命名资料项' }}</b>
+                        <span v-if="isAttachmentCollapsed(item)" class="attachment-summary">
+                          {{ item.required ? '必填' : '选填' }} · {{ formatGroupsText(item) }} · 最多 {{ item.maxFiles || 1 }} 个 · 单个 ≤ {{ item.maxSizeMB || 20 }}MB
+                        </span>
                       </div>
-                      <el-button type="danger" link @click="removeAttachmentItem(index)">删除</el-button>
+                      <div class="attachment-header-actions">
+                        <el-button type="danger" link @click="removeAttachmentItem(index)">删除</el-button>
+                        <el-button class="collapse-toggle" @click="toggleAttachmentCollapse(item)">
+                          {{ isAttachmentCollapsed(item) ? '展开' : '收起' }}
+                        </el-button>
+                      </div>
                     </header>
-                    <div class="config-attachment-body flat-attachment-form">
+                    <div v-show="!isAttachmentCollapsed(item)" class="config-attachment-body flat-attachment-form">
                       <div class="config-field-cell">
                         <el-form-item label="资料项名称"><el-input v-model="item.name" placeholder="请输入资料项名称"></el-input></el-form-item>
                       </div>
@@ -134,10 +139,10 @@
                         <el-form-item label="单文件大小 MB"><el-input-number v-model="item.maxSizeMB" :min="1" :max="200" class="full-width"></el-input-number></el-form-item>
                       </div>
                       <div class="config-field-cell">
-                        <el-form-item label="模板文件名称"><el-input v-model="item.templateUrl" placeholder="xxx.docx"></el-input></el-form-item>
+                        <el-form-item label="模板文件名称"><el-input v-model="item.templateUrl" class="preview-input" placeholder="xxx.docx"><template #append><el-button @click="openTemplate(item)">预览</el-button></template></el-input></el-form-item>
                       </div>
                       <div class="config-field-cell">
-                        <el-form-item label="示例图片名称"><el-input v-model="item.exampleImageUrl" placeholder="xxx.png"><template #append><el-button @click="openExample(item)">预览</el-button></template></el-input></el-form-item>
+                        <el-form-item label="示例图片名称"><el-input v-model="item.exampleImageUrl" class="preview-input" placeholder="xxx.png"><template #append><el-button @click="openExample(item)">预览</el-button></template></el-input></el-form-item>
                       </div>
                       <div class="config-field-cell is-full">
                         <el-form-item label="资料项说明"><el-input v-model="item.description" type="textarea" :rows="2" placeholder="告诉候选人需要提交什么、如何拍摄或填写"></el-input></el-form-item>
@@ -157,15 +162,17 @@
             <el-tab-pane label="打包核查配置" name="package">
               <el-form label-position="top" class="config-form">
                 <el-row :gutter="16">
-                  <el-col :xs="24">
+                  <el-col :xs="24" :sm="12">
                     <el-form-item label="ZIP 文件名规则">
                       <el-input v-model="config.naming.zipNameTemplate"></el-input>
                     </el-form-item>
                   </el-col>
+                  <el-col :xs="24" :sm="12">
+                    <el-form-item label="ZIP 密码提示">
+                      <el-input v-model="config.form.zipPasswordHint"></el-input>
+                    </el-form-item>
+                  </el-col>
                 </el-row>
-                <el-form-item label="ZIP 密码提示">
-                  <el-input v-model="config.form.zipPasswordHint"></el-input>
-                </el-form-item>
               </el-form>
             </el-tab-pane>
 
@@ -189,7 +196,7 @@
                 <el-form-item label="邮件正文模板">
                   <el-input v-model="config.email.bodyTemplate" type="textarea" :rows="8"></el-input>
                 </el-form-item>
-                <el-alert type="info" :closable="false" show-icon>
+                <el-alert class="variable-alert" type="info" :closable="false" show-icon>
                   可用变量：{姓名}、{手机号}、{日期}、{时间}、{表单标题}、{压缩包名称}、{附件编号}、{资料名称}、{序号}、{扩展名}
                 </el-alert>
               </el-form>
@@ -199,7 +206,7 @@
       </el-main>
     </el-container>
 
-    <el-dialog v-model="exampleDialogVisible" :title="currentExampleTitle || '查看示例'" width="760px" class="example-dialog">
+    <el-dialog v-model="exampleDialogVisible" :title="currentExampleTitle || '查看示例'" width="760px" align-center class="example-dialog">
       <div class="example-preview-wrap">
         <img v-if="currentExampleImageUrl" class="example-preview-image" :src="currentExampleImageUrl" alt="资料示例图" />
         <el-empty v-else description="未配置示例图片"></el-empty>

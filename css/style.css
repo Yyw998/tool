@@ -546,6 +546,7 @@ body[data-page="config"] {
   --el-color-primary-light-9: #fff4e7;
   --el-color-primary-dark-2: #d97000;
   --el-border-color-hover: #ffd7a5;
+  --el-color-info: #9aa2af;
   background: #fff8f0;
 }
 
@@ -587,20 +588,144 @@ body[data-page="config"] .el-button--primary {
   --el-button-active-border-color: #d97000;
 }
 
-body[data-page="config"] .el-button:not(.el-button--primary):hover,
-body[data-page="config"] .el-button:not(.el-button--primary):focus,
-body[data-page="config"] .el-button:not(.el-button--primary):active,
-body[data-page="config"] .el-button.is-plain:hover,
-body[data-page="config"] .el-button.is-plain:focus,
-body[data-page="config"] .el-button.is-plain:active {
+body[data-page="config"] .el-button:not(.el-button--primary):not(.el-button--danger):not(.is-link) {
+  color: #7a4000;
+  border-color: #ffd7a5;
+  background: #fffdfb;
+}
+
+body[data-page="config"] .el-button:not(.el-button--primary):not(.el-button--danger):not(.is-link):hover,
+body[data-page="config"] .el-button:not(.el-button--primary):not(.el-button--danger):not(.is-link):focus,
+body[data-page="config"] .el-button:not(.el-button--primary):not(.el-button--danger):not(.is-link):active,
+body[data-page="config"] .el-button.is-plain:not(.el-button--danger):hover,
+body[data-page="config"] .el-button.is-plain:not(.el-button--danger):focus,
+body[data-page="config"] .el-button.is-plain:not(.el-button--danger):active {
   color: #d97000;
   border-color: #ffd7a5;
   background: #fff4e7;
 }
 
+body[data-page="config"] .el-input__wrapper,
+body[data-page="config"] .el-select__wrapper,
+body[data-page="config"] .el-textarea__inner {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #eadfd3 inset;
+  background: #fff;
+  transition: box-shadow .18s ease, background-color .18s ease;
+}
+
+body[data-page="config"] .el-input__wrapper:hover,
+body[data-page="config"] .el-select__wrapper:hover,
+body[data-page="config"] .el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px #ffd7a5 inset;
+}
+
 body[data-page="config"] .el-input__wrapper.is-focus,
+body[data-page="config"] .el-select__wrapper.is-focused,
 body[data-page="config"] .el-textarea__inner:focus {
-  box-shadow: 0 0 0 1px #ff8a00 inset;
+  box-shadow: 0 0 0 1px #ff8a00 inset, 0 0 0 3px rgba(255, 138, 0, .10);
+}
+
+body[data-page="config"] .el-input-group__append,
+body[data-page="config"] .el-input-group__prepend {
+  color: #8a4b00;
+  border-color: #eadfd3;
+  background: #fffaf4;
+  box-shadow: 0 0 0 1px #eadfd3 inset;
+}
+
+body[data-page="config"] .el-input-group__append .el-button,
+body[data-page="config"] .el-input-group__prepend .el-button {
+  color: #d97000;
+  border-color: transparent;
+  background: transparent;
+  font-weight: 700;
+}
+
+body[data-page="config"] .el-input-group__append .el-button:hover,
+body[data-page="config"] .el-input-group__append .el-button:focus,
+body[data-page="config"] .el-input-group__prepend .el-button:hover,
+body[data-page="config"] .el-input-group__prepend .el-button:focus {
+  color: #d97000;
+  background: #fff4e7;
+}
+
+body[data-page="config"] .el-input-number__decrease,
+body[data-page="config"] .el-input-number__increase {
+  color: #7d6f63;
+  border-color: #eadfd3;
+  background: #fffaf4;
+}
+
+body[data-page="config"] .el-input-number__decrease:hover,
+body[data-page="config"] .el-input-number__increase:hover {
+  color: #d97000;
+  background: #fff4e7;
+}
+
+body[data-page="config"] .el-select .el-tag {
+  color: #d97000;
+  border-color: #ffd7a5;
+  background: #fff4e7;
+}
+
+body[data-page="config"] .el-select .el-tag .el-tag__close {
+  color: #d97000;
+}
+
+body[data-page="config"] .el-select .el-tag .el-tag__close:hover {
+  color: #fff;
+  background: #ff8a00;
+}
+
+body[data-page="config"] .el-switch.is-checked .el-switch__core {
+  border-color: #ff8a00;
+  background-color: #ff8a00;
+}
+
+body[data-page="config"] .el-switch__core {
+  border-color: #d9dee8;
+  background: #d9dee8;
+}
+
+body[data-page="config"] .el-table__row:hover > td.el-table__cell {
+  background: #fffaf4;
+}
+
+body[data-page="config"] .preview-input .el-input__wrapper {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: 0 0 0 1px #eadfd3 inset;
+}
+
+body[data-page="config"] .preview-input .el-input-group__append {
+  min-width: 58px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #ffd7a5;
+  border-left: 0;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  background: #fff4e7;
+  box-shadow: none;
+}
+
+body[data-page="config"] .preview-input .el-input-group__append .el-button {
+  width: 100%;
+  min-height: 100%;
+  padding: 0 14px;
+  border-radius: 0;
+}
+
+body[data-page="config"] .preview-input .el-input-group__append .el-button:hover,
+body[data-page="config"] .preview-input .el-input-group__append .el-button:focus {
+  color: #fff;
+  background: #ff8a00;
+}
+
+body[data-page="config"] .preview-input .el-input__wrapper.is-focus + .el-input-group__append,
+body[data-page="config"] .preview-input .el-input__wrapper:hover + .el-input-group__append {
+  border-color: #ff8a00;
 }
 
 body[data-page="config"] .app-main-wide {
@@ -790,6 +915,22 @@ body[data-page="config"] .app-main-wide {
   border-color: #f4eadf;
 }
 
+.config-table .el-table__cell:last-child .cell {
+  display: flex;
+  justify-content: center;
+}
+
+.config-table .el-button.is-link {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+}
+
+.config-table .el-button.is-link:hover,
+.config-table .el-button.is-link:focus {
+  background: #fff4e7;
+}
+
 .config-attachment-list {
   gap: 14px;
 }
@@ -814,6 +955,10 @@ body[data-page="config"] .app-main-wide {
   background: #fffaf4;
 }
 
+.config-attachment-card.is-collapsed header {
+  border-bottom: 0;
+}
+
 .config-attachment-card header > div {
   min-width: 0;
   display: flex;
@@ -828,6 +973,39 @@ body[data-page="config"] .app-main-wide {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.attachment-summary {
+  min-width: 0;
+  color: #8a7d72;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-header-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collapse-toggle.el-button {
+  height: 28px;
+  padding: 0 12px;
+  color: #d97000;
+  border-color: #ffd7a5;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.collapse-toggle.el-button:hover,
+.collapse-toggle.el-button:focus {
+  color: #fff;
+  border-color: #ff8a00;
+  background: #ff8a00;
 }
 
 .attachment-index {
@@ -966,6 +1144,17 @@ body[data-page="config"] .app-main-wide {
 
 .config-tabs .el-alert {
   border-radius: 12px;
+}
+
+.config-tabs .variable-alert {
+  border: 1px solid #ffe0b8;
+  background: #fff6ea;
+}
+
+.config-tabs .variable-alert .el-alert__icon,
+.config-tabs .variable-alert .el-alert__content,
+.config-tabs .variable-alert .el-alert__description {
+  color: #d97000;
 }
 
 @media (max-width: 768px) {
@@ -1144,7 +1333,8 @@ body[data-page="config"] .app-main-wide {
     min-height: 32px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 10px;
     color: #6f6257;
     font-size: 12px;
   }
@@ -1161,17 +1351,52 @@ body[data-page="config"] .app-main-wide {
     padding: 12px 12px 10px;
     align-items: flex-start;
     gap: 10px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .config-attachment-card header > div {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 7px 8px;
   }
 
   .config-attachment-card header b {
+    min-width: 0;
     white-space: normal;
+    line-height: 1.35;
+  }
+
+  .attachment-summary {
+    grid-column: 1 / -1;
+    width: 100%;
+    color: #8a7d72;
+    font-size: 12px;
     line-height: 1.45;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .attachment-header-actions {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 0;
+  }
+
+  .attachment-header-actions .el-button.is-link {
+    height: 24px;
+    padding: 0 4px;
+    font-size: 12px;
+  }
+
+  .collapse-toggle.el-button {
+    height: 26px;
+    padding: 0 10px;
   }
 
   .config-attachment-body {
@@ -1187,7 +1412,8 @@ body[data-page="config"] .app-main-wide {
     min-height: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 10px;
     padding: 0;
   }
 
@@ -1394,7 +1620,17 @@ body[data-page="collect"] .el-step__line-inner { border-color: #ff8a00; }
 .archive-list li:last-child { border: 0; }
 .archive-list span { margin-right: 8px; color: #ff8a00; font-weight: 800; }
 .archive-empty { flex: 1 1 auto; min-height: 0; padding: 34px 14px; display: grid; place-items: center; color: #9a8775; background: #fffdfb; font-size: 13px; text-align: center; }
-.example-dialog.el-dialog { margin: 0 !important; }
+.example-dialog.el-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(760px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  margin: 0 !important;
+  display: flex;
+  flex-direction: column;
+  transform: translate(-50%, -50%);
+}
 .example-dialog .el-dialog__body { max-height: calc(100vh - 150px); overflow: auto; }
 .example-dialog .example-preview-wrap { max-height: calc(100vh - 190px); min-height: 0; }
 .example-dialog .example-preview-image { max-height: calc(100vh - 220px); }

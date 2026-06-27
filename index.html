@@ -85,7 +85,7 @@
               </div>
               <el-form :model="formData" label-position="top" class="basic-form">
                 <el-row :gutter="16">
-                  <el-col v-for="field in config.baseFields" :key="field.key" :xs="24" :sm="12">
+                  <el-col v-for="field in sortedBaseFields" :key="field.key" :xs="24" :sm="12">
                     <el-form-item :label="field.label" :required="field.required">
                       <el-input v-if="field.type === 'text' || field.type === 'phone' || field.type === 'email'" v-model="formData[field.key]" :placeholder="field.placeholder || '请输入' + field.label" clearable></el-input>
                       <el-date-picker v-else-if="field.type === 'date'" v-model="formData[field.key]" type="date" value-format="YYYY-MM-DD" :placeholder="field.placeholder || '请选择' + field.label" class="full-width"></el-date-picker>

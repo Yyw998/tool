@@ -89,27 +89,21 @@ https://你的GitHub用户名.github.io/仓库名/
 
 ### 发布配置给候选人
 
-配置页的“保存草稿”只保存到 HR 当前浏览器，适合反复编辑；不会影响候选人页面。
-
 需要发布时：
 
-1. 在配置页点击“导出发布配置”，下载得到 `config.json`；
-2. 在静态托管平台中上传或替换站点根目录的 `config.json`；
+1. 在配置页点击“导出发布配置”，下载得到 `config.js`；
+2. 在静态托管平台中上传或替换站点的 `js/config.js`；
 3. 候选人刷新资料收集页面后，会自动读取这份最新配置。
 
-候选人不需要导入 JSON。若站点中不存在 `config.json`，页面会回退使用 `js/config.js` 的默认配置，便于本地预览。
+候选人不需要导入任何配置文件。页面会以 `js/config.js` 作为默认配置，并在打开候选人页面时以 `no-store` 方式重新读取该文件，尽量避免缓存导致配置不生效。
 
-配置默认保存在当前浏览器 `localStorage` 中。
+配置页以当前站点的 `js/config.js` 为基础进行编辑；导出后请用新文件替换站点中的 `js/config.js`。
 
 ### 7.1 导出配置
 
-在配置管理页点击 `导出 JSON`，可下载当前配置。
+在配置管理页点击 `导出发布配置`，可下载当前发布配置文件。
 
-### 7.2 导入配置
-
-在配置管理页点击 `导入 JSON`，选择之前导出的配置文件。
-
-### 7.3 修改默认配置
+### 7.2 修改默认配置
 
 如果希望所有访问者打开页面时默认使用你的配置，需要修改：
 
@@ -119,31 +113,31 @@ js/config.js
 
 把 `window.DEFAULT_APP_CONFIG` 替换为导出的配置内容。
 
-注意：`localStorage` 只对当前浏览器生效，不会同步给其他用户。
+注意：候选人页面读取的是站点中的 `js/config.js`，不是某个浏览器里的临时配置。
 
 ## 8. 模板文件和示例图片替换
 
-当前 `assets/templates` 下的模板文件是示例模板，`assets/examples` 下的图片是示例预览图。正式使用时，请替换为真实模板和真实示例图片，并确保 `js/config.js` 或配置管理页中的地址正确。
+当前 `templates` 下的模板文件是示例模板，`examples` 下的图片是示例预览图。正式使用时，请替换为真实模板和真实示例图片。配置管理页里只需填写文件名，例如 `xxx.docx` 或 `xxx.png`。
 
 示例模板地址：
 
 ```text
-assets/templates/中粮贸易招聘简历模板.docx
-assets/templates/粮达网新员工信息登记表.docx
+templates/中粮贸易新员工信息登记表.docx
+templates/粮达网新员工信息登记表.docx
 ```
 
 示例图片地址：
 
 ```text
-assets/examples/中粮贸易招聘简历模板示例.png
-assets/examples/粮达网新员工信息登记表示例.png
+examples/中粮贸易新员工信息登记表示例.png
+examples/粮达网新员工信息登记表示例.png
 ```
 
 配置字段为：
 
 ```text
-templateUrl       # 模板下载地址
-exampleImageUrl   # 示例图片地址
+templateUrl       # 模板文件名称
+exampleImageUrl   # 示例图片名称
 ```
 
 ## 9. ZIP 加密说明

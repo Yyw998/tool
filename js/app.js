@@ -1,5 +1,4 @@
 (function () {
-  const STORAGE_KEY = 'entry-material-collector-config-v4';
   const DEFAULT_FILE_NAME_TEMPLATE = '{姓名}_{手机号}_{附件编号}_{资料名称}_{序号}.{扩展名}';
   const LEGACY_FILE_NAME_TEMPLATES = new Set([
     '{姓名}_中粮贸易新员工信息登记表.{扩展名}',
@@ -89,15 +88,13 @@
   }
 
   function loadInitialConfig() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        return normalizeConfig(JSON.parse(raw));
-      }
-    } catch (error) {
-      console.warn('读取本地配置失败，已使用默认配置', error);
-    }
     return normalizeConfig(window.DEFAULT_APP_CONFIG);
+  }
+
+  function parseConfigJs(text) {
+    const configWindow = {};
+    const script = new Function('window', `${text}\n;return window.DEFAULT_APP_CONFIG;`);
+    return script(configWindow);
   }
 
   function pad2(value) {
@@ -145,6 +142,7 @@
         currentExampleImageUrl: '',
         currentExampleDescription: '',
         configTab: 'base',
+        collapsedAttachmentMap: {},
         uploadFormatOptions: FORMAT_GROUPS
       };
     },
@@ -180,9 +178,7 @@
         });
         return files;
       },
-      prettyConfig() {
-        return JSON.stringify(this.prepareConfigForSave(), null, 2);
-      }
+      
     },
     watch: {
       'config.baseFields': {
@@ -198,12 +194,13 @@
     },
     mounted() {
       if (document.body.dataset.page !== 'collect') return;
-      fetch('./config.json', { cache: 'no-store' })
+      fetch('./js/config.js', { cache: 'no-store' })
         .then((response) => {
           if (!response.ok) throw new Error('未找到已发布配置');
-          return response.json();
+          return response.text();
         })
-        .then((config) => {
+        .then((text) => {
+          const config = parseConfigJs(text);
           this.config = normalizeConfig(config);
           this.formData = {};
           this.config.baseFields.forEach((field) => {
@@ -211,7 +208,7 @@
           });
         })
         .catch(() => {
-          // 未发布 config.json 时继续使用内置默认配置，便于本地预览。
+          // 无法重新读取 js/config.js 时继续使用页面已加载的内置默认配置，便于本地预览。
         });
     },
     methods: {
@@ -238,6 +235,14 @@
         this.currentExampleImageUrl = this.resolveExampleImageUrl(item);
         this.currentExampleDescription = item?.description || '';
         this.exampleDialogVisible = true;
+      },
+      openTemplate(item) {
+        const url = this.resolveTemplateUrl(item);
+        if (!url) {
+          ElMessage.warning('请先填写模板文件名称。');
+          return;
+        }
+        window.open(url, '_blank', 'noopener,noreferrer');
       },
       previewUploaded(item, fileIndex = 0) {
         const files = this.uploadFiles[item.id] || [];
@@ -628,59 +633,27 @@
         });
         return config;
       },
-      saveConfig() {
-        try {
-          const config = normalizeConfig(this.prepareConfigForSave());
-          this.config = config;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-          ElMessage.success('配置已保存到当前浏览器。');
-        } catch (error) {
-          ElMessageBox.alert(`保存失败：${error.message || error}`, '保存失败', { type: 'error' });
-        }
-      },
       exportConfig() {
-        const blob = new Blob([JSON.stringify(this.prepareConfigForSave(), null, 2)], { type: 'application/json;charset=utf-8' });
+        const content = `window.DEFAULT_APP_CONFIG = ${JSON.stringify(this.prepareConfigForSave(), null, 2)};\n`;
+        const blob = new Blob([content], { type: 'application/javascript;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'config.json';
+        a.download = 'config.js';
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
       },
-      triggerImport() {
-        if (this.$refs.configFileInput) {
-          this.$refs.configFileInput.click();
-        }
-      },
-      importConfig(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          try {
-            const config = normalizeConfig(JSON.parse(reader.result));
-            this.config = config;
-            this.saveConfig();
-            ElMessage.success('配置导入成功。');
-          } catch (error) {
-            ElMessageBox.alert(`配置文件解析失败：${error.message || error}`, '导入失败', { type: 'error' });
-          } finally {
-            event.target.value = '';
-          }
-        };
-        reader.readAsText(file, 'utf-8');
-      },
       async resetConfig() {
         try {
-          await ElMessageBox.confirm('确定恢复默认配置吗？当前浏览器保存的配置会被覆盖。', '恢复默认配置', {
+          await ElMessageBox.confirm('确定恢复默认配置吗？当前页面修改会被覆盖。', '恢复默认配置', {
             type: 'warning',
             confirmButtonText: '恢复默认',
             cancelButtonText: '取消'
           });
           this.config = normalizeConfig(window.DEFAULT_APP_CONFIG);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(this.config));
+          this.collapsedAttachmentMap = {};
           ElMessage.success('已恢复默认配置。');
         } catch (error) {
           // 用户取消，无需处理
@@ -700,11 +673,30 @@
       removeBaseField(index) {
         this.config.baseFields.splice(index, 1);
       },
+      isAttachmentCollapsed(item) {
+        if (!item || !item.id) return true;
+        return this.collapsedAttachmentMap[item.id] !== false;
+      },
+      toggleAttachmentCollapse(item) {
+        if (!item || !item.id) return;
+        this.collapsedAttachmentMap[item.id] = !this.isAttachmentCollapsed(item) ? true : false;
+      },
+      formatGroupsText(item) {
+        const groups = item?.allowedFormatGroups && item.allowedFormatGroups.length
+          ? item.allowedFormatGroups
+          : extensionsToGroups(item?.allowedExtensions || []);
+        if (!groups.length) return '未设置类型';
+        return groups.map((value) => {
+          const option = FORMAT_GROUPS.find((group) => group.value === value);
+          return option ? option.label : value;
+        }).join('、');
+      },
       addAttachmentItem() {
         const index = (this.config.attachments || []).length + 1;
+        const id = `attachment_custom_${Date.now()}`;
         this.config.attachments.push({
           sort: index,
-          id: `attachment_custom_${Date.now()}`,
+          id,
           code: `附件${String(index).padStart(2, '0')}`,
           name: '新增资料项',
           required: false,
@@ -719,6 +711,7 @@
           fileNameTemplate: DEFAULT_FILE_NAME_TEMPLATE,
           description: ''
         });
+        this.collapsedAttachmentMap[id] = false;
       },
       removeAttachmentItem(index) {
         const removed = this.config.attachments[index];
